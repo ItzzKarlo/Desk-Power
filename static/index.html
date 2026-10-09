@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <meta name="theme-color" content="#111927"/>
+  <meta name="description" content="Local power monitoring for your desk"/>
+  <link rel="manifest" href="/manifest.webmanifest"/>
+  <link rel="icon" type="image/svg+xml" href="/icon.svg"/>
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
+  <link rel="stylesheet" href="/style.css"/>
+  <title>Desk Power</title>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Desk Power home">
+        <span class="brandmark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M13.2 2.5 5.6 13h5.9l-.7 8.5 7.6-10.5h-5.9l.7-8.5Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg></span>
+        <span><strong>DESK POWER</strong><small>HERMES / CONTROL</small></span>
+      </a>
+      <div class="status"><span class="status-dot" id="status-dot"></span><span id="status-text">CONNECTING</span></div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-copy"><p class="eyebrow">CURRENT DRAW</p><div class="power-reading"><span id="watts">—</span><span class="unit">W</span></div><p class="muted" id="update-time">Waiting for first reading</p></div>
+      <div class="switch-panel"><div class="switch-label"><span class="eyebrow">SOCKET POWER</span><strong id="power-state">Unknown</strong></div><button id="power-toggle" type="button" class="power-btn" disabled aria-label="Toggle socket power"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 2v10"/><path d="M6.2 5.9a9 9 0 1 0 11.6 0"/></svg></button></div>
+    </section>
+
+    <section class="stats" aria-label="Energy statistics">
+      <article class="stat"><p class="eyebrow">TODAY</p><p class="stat-val"><span id="today">—</span> <small>kWh</small></p><p class="subline">Energy consumed</p></article>
+      <article class="stat"><p class="eyebrow">THIS MONTH</p><p class="stat-val"><span id="month">—</span> <small>kWh</small></p><p class="subline">Energy consumed</p></article>
+      <article class="stat"><p class="eyebrow">EST. MONTHLY COST</p><p class="stat-val" id="cost">—</p><p class="subline" id="rate">Based on configured rate</p></article>
+    </section>
+
+    <section class="graph-card">
+      <div class="graph-head"><div><p class="eyebrow">POWER HISTORY</p><h2>Consumption</h2></div><div class="ranges" role="group" aria-label="Graph period"><button data-range="1h">1H</button><button class="active" data-range="24h">24H</button><button data-range="7d">7D</button><button data-range="30d">30D</button></div></div>
+      <div class="graph-area"><canvas id="chart" aria-label="Historical power consumption chart" role="img"></canvas><div id="empty-chart" class="empty-chart">Readings appear here after the first minute</div></div>
+      <div class="graph-footer"><span><span class="legend-dot"></span>Measured draw in watts</span><span id="graph-date">LAST 24 HOURS</span></div>
+    </section>
+
+    <footer><span>LOCAL-FIRST · POWERED BY HERMES</span><span id="footer-message">Direct connection to Tapo P115</span></footer>
+    <div id="toast" role="status" aria-live="polite" hidden></div>
+  </main>
+  <script src="/app.js" defer></script>
+</body>
+</html>
