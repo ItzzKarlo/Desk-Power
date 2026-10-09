@@ -1,84 +1,95 @@
-# Desk Power — Tiny Tapo P115 dashboard for Hermes
+# Desk Power v1.1 — Tiny multi-Tapo P115 dashboard for Hermes
 
-A small Python (aiohttp + python-kasa) service, a SQLite file, and plain HTML/CSS/JS. No Docker, Home Assistant, build tools, Node.js, or cloud dashboard. The plug is queried **locally** over Wi-Fi using `python-kasa`; TP-Link/Tapo credentials are needed for its local authentication but are not sent to the frontend.
+One small Python service, plain HTML/CSS/JS frontend, and an SQLite database. No Home Assistant, Docker, Node.js, or frontend build process. Supports **two or more Tapo P115 plugs**, polled concurrently over your local Wi-Fi
 
 ## Features
 
-- Live W, today/month kWh directly from the P115
-- Estimated monthly electricity cost, configurable EUR/kWh
-- On/off control with confirmation and a server-side wattage-based OFF safety block
-- 1 hour, 24 hour, 7 day, 30 day wattage graphs saved in SQLite (1 sample/min, 90-day retention)
-- Mobile-responsive, installable PWA *when served over HTTPS*
-- HTTP Basic authentication, auto-reconnect, systemd auto-start
+- Combined **live W**, daily/monthly **kWh**, estimated monthly **€** when *all* configured plugs are online
+- A card per plug with its own wattage, usage, health, and independent ON/OFF button
+- 1h, 24h, 7d, 30d graph: choose **Combined** or an individual plug
+- Store a separate sample for each plug around once/minute in SQLite; retain 90 days
+- If one plug is disconnected, combined totals/history do **not** pretend partial usage is the complete total
+- Before switching any outlet OFF, query its current load and refuse OFF above `OFF_MAX_WATTS` (default 30 W)
+- Auto-reconnect, Basic authentication, systemd auto-start, a responsive PWA shell on trusted HTTPS
 
-## Deploy on Hermes
+## Hermes install
 
-1. Pair your Tapo P115 in the Tapo app first and verify that wattage shows there
-2. Find the plug's IP in Fritz!Box → Home Network → Network, and reserve that IP so it doesn't change. The `TAPO_IP=10.10.0.50` in the example is **just a placeholder**
-3. Copy/unzip this folder onto Hermes, e.g. `~/desk-power`
-4. Install Python venv support: `sudo apt update && sudo apt install -y python3-venv`
-5. From inside the project folder:
-
-   ```bash
-   cp .env.example .env
-   chmod 600 .env
-   nano .env
-   # Set TAPO_IP, TAPO_USERNAME, TAPO_PASSWORD, DASH_PASSWORD and EUR_PER_KWH
-   ./install.sh
-   ```
-
-6. Open **http://hermes.karmtin:8766** (or `http://10.10.0.10:8766`) on your LAN and enter your configured `DASH_USER` / `DASH_PASSWORD` in the browser password prompt
-7. Check `sudo journalctl -u desk-power -f` for any error
-
-When modifying `.env`: `sudo systemctl restart desk-power`
-
-### Why the username and password?
-
-Use the same TP-Link/Tapo account credentials you used in the Tapo app. These stay on Hermes in `.env` and are used for local device authentication. `DASH_PASSWORD` is a **separate dashboard password**. Create a unique, long password for it
-
-### Local network & PWA caveat
-
-`http://hermes.karmtin:8766` works as a normal web dashboard but **most browsers do not enable service workers/PWA offline installation on plain LAN HTTP**. Use an HTTPS reverse proxy if you want full installable PWA behavior on iPhone. If using Caddy, point it at `127.0.0.1:8766` and **keep access private** (e.g. Meshnet or trusted VPN). Do not publicly expose socket control. If running behind a reverse proxy with a different hostname, the proxy should preserve the original Host header
-
-For better protection, set `HTTP_HOST=127.0.0.1` in `.env` once Caddy is configured, and only access the service via the proxy
-
-**Important:** HTTP Basic credentials can be read by observers on unencrypted LAN traffic. Prefer HTTPS when using it on devices/networks you do not fully trust
-
-### Protect Zeus and Hermes
-
-Turning the P115 OFF removes mains power from **everything connected to it**. Shut down Zeus normally first; the dashboard rejects OFF when the latest wattage is over `OFF_MAX_WATTS` (default 30 W). The threshold is a precaution, not a guarantee that the PC is shut down. Never plug Hermes or critical networking gear into the controlled outlet. The Tapo app remains your fallback when Hermes is offline
-
-### Network troubleshooting
-
-Try discovery from Hermes (inside virtual environment) with the IP and same Tapo account credentials:
+1. Pair **both P115s** in the Tapo app under the **same TP-Link account**
+2. Look up their LAN IP addresses in Fritz!Box and reserve them in DHCP; each has a different IP
+3. Copy this directory to `/srv/desk-power` or `~/desk-power`
+4. Run inside the directory:
 
 ```bash
-cd ~/desk-power
-source .venv/bin/activate
-kasa --username 'your-tapo-account@example.com' --host 10.10.0.50 state
+sudo apt update && sudo apt install -y python3-venv
+cp .env.example .env
+chmod 600 .env
+nano .env
+./install.sh
 ```
 
-Some firmware versions may need **Third-Party Compatibility** enabled in the Tapo app. Only enable this if you encounter an authentication problem, and check the security warning shown in the app. Update `python-kasa` if needed, since behavior can vary by firmware. Ensure plug and Hermes can reach each other directly over the LAN (no guest Wi-Fi/client isolation)
+Example `.env`:
 
-### Services
+```env
+TAPO_PLUGS=zeus@10.10.0.50,monitors@10.10.0.51
+TAPO_USERNAME=your-tapo-account@example.com
+TAPO_PASSWORD=replace-me
+DASH_USER=admin
+DASH_PASSWORD=replace-with-a-long-unique-password
+HTTP_HOST=0.0.0.0
+HTTP_PORT=8766
+POLL_SECONDS=10
+OFF_MAX_WATTS=30
+EUR_PER_KWH=0.30
+```
+
+**Those IP addresses are placeholders**. Replace with the actual IPs of your plugs. Stable IDs (`zeus`, `monitors`) identify each plug's history even if an IP changes. The actual display names come from the Tapo app
+
+The plug credentials remain on Hermes in `.env` and are never supplied to JavaScript. `DASH_PASSWORD` should be different from your Tapo password
+
+Open **http://hermes.karmtin:8766** on the LAN, or Hermes' actual IP if `.karmtin` DNS doesn't resolve
 
 ```bash
 sudo systemctl status desk-power --no-pager
-sudo systemctl restart desk-power
 sudo journalctl -u desk-power -f
+# After changing .env:
+sudo systemctl restart desk-power
 ```
 
-### API
+## Upgrading from v1
 
-- `GET /api/state`: `online`, `on`, `watts`, `today_kwh`, `month_kwh`, `eur_per_kwh`
-- `GET /api/history?range=24h`: `points` with timestamp and wattage
-- `POST /api/power` with JSON `{"on":true}` or `{"on":false}`
+Back up `.env` and `data/history.sqlite`, replace the app files, and update your `.env` to use `TAPO_PLUGS=...` for both devices (keep `TAPO_USERNAME`, `TAPO_PASSWORD`, and dashboard settings)
 
-All endpoints require HTTP Basic authentication. The dashboard works without any API tokens embedded in client-side code
+The old `samples` table in the SQLite database is **preserved** but not counted by v1.1 because the samples have no plug ID. New per-plug graphs start with the first v1.1 measurements. No previous database contents are deleted
 
-## Limitations
+If you already installed v1, the existing `desk-power` systemd service can run the updated Python service. Reinstall only if the service path changes
 
-- Energy stats only if your P115 firmware exposes them correctly to `python-kasa`
-- A full PWA needs a trusted HTTPS origin
-- No historical data exists until Hermes starts logging
-- This is not a guaranteed power-loss-free smart shutdown system. Do not use the socket to hard-power-off a running computer
+## API
+
+All endpoints require HTTP Basic authentication
+
+- `GET /api/state` — combined totals, `online_count`, `plug_count`, and `plugs[]` with individual readings
+- `GET /api/history?range=24h&plug=total` — combined points for buckets containing samples from all configured plugs
+- `GET /api/history?range=24h&plug=zeus` — points for one plug
+- `POST /api/plugs/zeus/power` with JSON `{"on": true}` or `{"on": false}` — individual plug control
+
+Example test after installation:
+
+```bash
+curl -u 'admin:your-dashboard-password' http://127.0.0.1:8766/api/state
+```
+
+## Safety and security
+
+**Never cut mains power to Zeus while it's running**, even if its momentary power draw falls below the cutoff. The 30 W limit is an additional safeguard, **not** a guaranteed shutdown detector. The dashboard has no "all off" button on purpose. **Never** connect Hermes, your router, or critical network equipment to either controlled outlet
+
+Keep the dashboard on trusted LAN / Meshnet. Basic authentication over ordinary HTTP is unencrypted; use **trusted HTTPS** (e.g. private Caddy reverse proxy) before accessing it from untrusted networks. PWA install/service workers typically require HTTPS on phones. Do not open a public port to this service
+
+Tapo firmware behavior varies. If discovery/authentication fails, check IPs, Wi-Fi client isolation, and the Tapo app's Third-Party Compatibility option (it has security implications), or update `python-kasa`. The plugs and Hermes must be reachable over LAN
+
+## Test without physical plugs
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+The test suite uses two simulated independent P115 devices. To validate the real setup, inspect the live readings and switching in the Tapo app and compare them to the dashboard

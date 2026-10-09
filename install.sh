@@ -10,7 +10,7 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 cat > /tmp/desk-power-service-"$$" <<EOF
 [Unit]
-Description=Desk Power Tapo P115 Monitor
+Description=Desk Power Multi-P115 Monitor
 Wants=network-online.target
 After=network-online.target
 

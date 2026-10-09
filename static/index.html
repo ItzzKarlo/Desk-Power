@@ -22,8 +22,13 @@
     </header>
 
     <section class="hero">
-      <div class="hero-copy"><p class="eyebrow">CURRENT DRAW</p><div class="power-reading"><span id="watts">—</span><span class="unit">W</span></div><p class="muted" id="update-time">Waiting for first reading</p></div>
-      <div class="switch-panel"><div class="switch-label"><span class="eyebrow">SOCKET POWER</span><strong id="power-state">Unknown</strong></div><button id="power-toggle" type="button" class="power-btn" disabled aria-label="Toggle socket power"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 2v10"/><path d="M6.2 5.9a9 9 0 1 0 11.6 0"/></svg></button></div>
+      <div class="hero-copy"><p class="eyebrow">TOTAL CURRENT DRAW</p><div class="power-reading"><span id="watts">—</span><span class="unit">W</span></div><p class="muted" id="update-time">Waiting for first readings</p></div>
+      <div class="plug-count" id="plug-count">Connecting to outlets</div>
+    </section>
+
+    <section class="plug-section" aria-label="Individual outlets">
+      <div class="section-heading"><p class="eyebrow">INDIVIDUAL OUTLETS</p><span class="subline">Switch each P115 independently</span></div>
+      <div class="plug-grid" id="plug-grid"></div>
     </section>
 
     <section class="stats" aria-label="Energy statistics">
@@ -33,12 +38,12 @@
     </section>
 
     <section class="graph-card">
-      <div class="graph-head"><div><p class="eyebrow">POWER HISTORY</p><h2>Consumption</h2></div><div class="ranges" role="group" aria-label="Graph period"><button data-range="1h">1H</button><button class="active" data-range="24h">24H</button><button data-range="7d">7D</button><button data-range="30d">30D</button></div></div>
+      <div class="graph-head"><div><p class="eyebrow">POWER HISTORY</p><h2>Consumption</h2></div><div class="graph-controls"><select id="graph-plug" aria-label="Graph device"><option value="total">Combined</option></select><div class="ranges" role="group" aria-label="Graph period"><button data-range="1h">1H</button><button class="active" data-range="24h">24H</button><button data-range="7d">7D</button><button data-range="30d">30D</button></div></div></div>
       <div class="graph-area"><canvas id="chart" aria-label="Historical power consumption chart" role="img"></canvas><div id="empty-chart" class="empty-chart">Readings appear here after the first minute</div></div>
-      <div class="graph-footer"><span><span class="legend-dot"></span>Measured draw in watts</span><span id="graph-date">LAST 24 HOURS</span></div>
+      <div class="graph-footer"><span><span class="legend-dot"></span>Measured draw in watts (selected outlets)</span><span id="graph-date">LAST 24 HOURS</span></div>
     </section>
 
-    <footer><span>LOCAL-FIRST · POWERED BY HERMES</span><span id="footer-message">Direct connection to Tapo P115</span></footer>
+    <footer><span>LOCAL-FIRST · POWERED BY HERMES</span><span id="footer-message">Direct connections to Tapo P115s</span></footer>
     <div id="toast" role="status" aria-live="polite" hidden></div>
   </main>
   <script src="/app.js" defer></script>
